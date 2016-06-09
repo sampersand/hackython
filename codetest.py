@@ -1,37 +1,24 @@
 from overload import *
-from types import MethodType
-from inspect import currentframe, stack
-def _overload(func):
-	def call(*args, **kwargs):
-		return overload(func)(*args, **kwargs)
-	return call
+from types import FunctionType
+
+
+# @overload
+# def bar(): return (9)
+
 class testclass():
 	def __init__(self, val):
 		self.val = val
 	def __repr__(self):
 		return type(self).__qualname__ + '({})'.format(self.val)
-	@_overload
+
+	@overload
 	def add(self, val):
 		self.val += val
 		return self
-	# @_overload
-	# def add1(self, val1, val2):
-	# 	self.val += val1 * val2
-@_overload
-def bar():
-	return (9)
-print(bar())
-foo = testclass(val = 9)
-print(foo.add(3))
-
-# def addnotmethod(self, val):
-# 	self.val += val
-# 	return self.val
-# cli1 = testclass(1)
-# cli2 = testclass(100)
-# cli1.addv2 = MethodType(addnotmethod, cli1)
-# cli2.addv2 = MethodType(addnotmethod, cli2)
-# print(MethodType(testclass.add, cli1) == cli1.add)
-# print(cli1.addv2(2), 'cli1')
-# print(cli2.addv2(3), 'cli2')
-# print(cli1.v, cli2.v)
+	print('@')
+	@overload
+	def add(self, val1, val2):
+		self.val += val1 * val2
+		return self
+foo = testclass(9)
+print(foo.add(3,4))
