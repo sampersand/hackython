@@ -66,7 +66,7 @@ class _overloaded_function(dict):
 		for finfo in self.values():
 			if finfo._matches(args, kwargs, kwargskeys):
 				if lastmatched:
-					raise SyntaxError("Two possibilities for the given args")
+					raise SyntaxError("Two possibilities for the given args: args={}, kwargs = {}".format(args, kwargs))
 				lastmatched = finfo
 				if not self.check_for_duplicates:
 					break
@@ -74,29 +74,62 @@ class _overloaded_function(dict):
 			raise SyntaxError("No function found for the arguments: args={}, kwargs={}".format(args, kwargs))
 		return lastmatched.func(*args, **kwargs)
 
-def _getfunc(func, check_for_duplicates, locals):
-	locals = locals or inspect.currentframe().f_back.f_back.f_locals
-	if func.__qualname__ in locals and isinstance(locals[func.__qualname__], _overloaded_function):
-		return locals[func.__qualname__] + func
+def _getfunc(func, function_name, check_for_duplicates, locals):
+	if function_name in locals and isinstance(locals[function_name], _overloaded_function):
+		return locals[function_name] + func
 	return _overloaded_function(func, check_for_duplicates)
 
-def overload(func = None, check_for_duplicates = True, _locals = None):
-	if isinstance(func, FunctionType):
-		return _getfunc(func, check_for_duplicates, _locals)
-	return lambda func: _getfunc(func, check_for_duplicates, _locals)
+def overload(func = None, function_name = None, check_for_duplicates = True, _locals = None):
+	"""
+	Enables `overloading` a function. 
+	func (default=None) :: If None, the program will check for any other functions with the same name as the function
+		that this is being called on, and overload those. Specifying `func` will only overload the passed function. Note that
+		`func` has to be of type `types.FunctionType` or `_overloaded_function`.
+	function_name (default=None) :: If None, then `func.__qualname__` will be used to determine what to overload.
+		Otherwise, function_name will be.
+	check_for_duplicates (default=True) :: If False, the program will call and return the first valid function it finds.
+		If True, then it will continue searching until there are no more valid functions, or it finds another match.
+		In the case of another match, a SyntaxError will be thrown.
+	_locals (default=None) :: If set to None, the locals where overload was called will be used
+		(e.g. the locals at `foo = overload()`); Otherwise, _locals will be used.
+
+	"""
+	_locals = _locals or inspect.currentframe().f_back.f_locals
+	if isinstance(func, (FunctionType, _overloaded_function)):
+		return _getfunc(func, function_name or func.__qualname__, check_for_duplicates, _locals)
+	return lambda func: _getfunc(func, function_name or func.__qualname__, check_for_duplicates, _locals)
 
 if __name__ == '__main__':
-	@overload
-	def foo(a, b, c):
-		print('foo(a,b): %s'%locals())
-	@overload
-	def foo(a, *args):
-		print('no')
-	foo(1, 2)
-	# # def printme(parg1, parg2, *pargs, kwonlyarg1 = 4, kwonlyarg2 = 5, **kwargs):
-	# def printme(parg1, parg2, parg3, kwarg1 = 1, kwarg2 = 2, kwarg3 = 3, *pargs, kwonlyarg1 = 4, kwonlyarg2 = 5, kwonlyarg3 = 6, **kwargs):
-	# 	print('printme(alot):' + str(locals()))
-
+	class testclass():
+		@overload
+		def __init__(self, a):
+			self.a = a
+			self.b = None
+		@overload
+		def __init__(self, a, b):
+			self.a = a
+			self.b = b
+	t = testclass.__init__(1)
+	print(t.a)
 	# @overload
-	# def printme(*args):
-	# 	print('printme(*args):' + str(args))
+	# def foo(a, b, c):
+	# 	print('foo(a,b): %s'%locals())
+	# @overload
+	# def foo(a, *args):
+	# 	print('no')
+	# # foo(1, 2)
+	# def foo(a, *args):
+	# 	print(a, args)
+	# foo(1, *args)
+
+
+
+
+
+
+
+
+
+
+
+
