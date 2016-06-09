@@ -9,7 +9,8 @@ class _func_info():
 		self.func = func
 		self.fullargspec = inspect.getfullargspec(func)
 		if not self.fullargspec.defaults: self.args, self.kwargs = tuple(self.fullargspec.args), {}
-		else: self.args, self.kwargs = self.args[:len(defaults)], dict(zip(self.args[-len(defaults):], defaults))
+		else: self.args, self.kwargs = self.fullargspec.args[:len(self.fullargspec.defaults)],\
+			dict(zip(self.fullargspec.args[-len(self.fullargspec.defaults):], self.fullargspec.defaults))
 		self.varargs = self.fullargspec.varargs
 		self.varkw = self.fullargspec.varkw
 		self.kwargsonly = self.fullargspec.kwonlydefaults or {}
@@ -40,21 +41,24 @@ class _func_info():
 		Section 3:
 		Check the passed kwargs, and see if any of them aren't defnied, and varkw isnt defined.
 		"""
-
-		return not(len(args) > len(self.args) + len(self.kwargs) and not self.varargs or # Section 1
-		   any(arg not in kwargskeys for arg in self.args[len(args):]) or # Section 2
-		   kwargskeys - self.kwargskeys - frozenset(self.args[len(args):]) - self.kwargsonlykeys and not self.varkw) # Section 3
+		print(len(args), self.args)
+		section1 = len(args) > len(self.args) + len(self.kwargs) and not self.varargs
+		section2 = any(arg not in kwargskeys for arg in self.args[len(args):])
+		section3 = kwargskeys - self.kwargskeys - frozenset(self.args[len(args):]) - self.kwargsonlykeys and not self.varkw
+		# print(section1, section2, section3, args, self.args, kwargs, self.kwargs)
+		return not(section1 or section2 or section3) # Section 3
 	def __repr__(self): return '{}({})'.format(type(self).__qualname__, self.func)
 	def __str__(self): return str(list(self))
 
 class overloaded_function(dict):
-	def __new__(self, func, check_for_duplicates):
+	def __new__(self, func, check_for_duplicates, smart):
 		return super().__new__(self, {})
 
-	def __init__(self, func, check_for_duplicates):
+	def __init__(self, func, check_for_duplicates, smart):
 		super().__init__({})
 		self + func
 		self.check_for_duplicates = check_for_duplicates
+		self.smart = smart
 
 	def __add__(self, func):
 		finfo = _func_info(func)
@@ -62,76 +66,80 @@ class overloaded_function(dict):
 			print("Warning: function '{}' already exists!".format(finfo))
 		self[finfo] = finfo
 		return self
+	def _smartcall(self, matched, args, kwargs):
+		if len(matched) == 1:
+			return matched[0].func(*args, **kwargs)
+		for f in matched:
+
+			if len(f.args) == len(args) and not kwargs:
+				return f.func(*args, **kwargs)
+		raise SyntaxError("Not currently known how to smartcall args={}, kwargs = {} for functions:\n{}".format(args, kwargs, matched))
 
 	def __call__(self, *args, **kwargs):
-		lastmatched = None
+		lastmatched = []
 		kwargskeys = frozenset(kwargs)
 		for finfo in self.values():
 			if finfo._matches(args, kwargs, kwargskeys):
-				if lastmatched:
+				if lastmatched and not self.smart:
+					print(lastmatched, finfo, sep='\n')
 					raise SyntaxError("Two possibilities for the given args: args={}, kwargs = {}".format(args, kwargs))
-				lastmatched = finfo
+				lastmatched.append(finfo)
 				if not self.check_for_duplicates:
 					return lastmatched.func(*args, **kwargs)
-		if lastmatched == None:
+		if not lastmatched:
 			raise SyntaxError("No function found for the arguments: args={}, kwargs={}".format(args, kwargs))
-		return lastmatched.func(*args, **kwargs)
+		return self._smartcall(lastmatched, args, kwargs)
+		# return lastmatched.func(*args, **kwargs)
 
 	def __str__(self): return '{' + ', '.join(':'.join((str(k), str(v))) for k, v in self.items()) + '}'
-def _getfunc(func, function_name, check_for_duplicates, locals, delete_func):
-	if function_name in locals and (isinstance(locals[function_name], overloaded_function)
-	                                or isinstance(locals[function_name], FunctionType) and
-	                                hasattr(locals[function_name], '__func__')):
-		if hasattr(locals[function_name], '__func__'):
-			locals[function_name] = locals[function_name].__func__
-	# if function_name in locals and isinstance(locals[function_name], overloaded_function):
-		if check_for_duplicates != locals[function_name].check_for_duplicates:
-			locals[function_name].check_for_duplicates = check_for_duplicates
-		ret = locals[function_name] + func
-		if delete_func:
+def _getfunc(func, name, check_for_duplicates, locals, delete, smart):
+	if name in locals and (isinstance(locals[name], overloaded_function)
+	                                or isinstance(locals[name], FunctionType) and
+	                                hasattr(locals[name], '__func__')):
+		if hasattr(locals[name], '__func__'): locals[name] = locals[name].__func__
+		if check_for_duplicates != locals[name].check_for_duplicates: locals[name].check_for_duplicates = check_for_duplicates
+		if smart != locals[name].smart: locals[name].smart = smart
+		ret = locals[name] + func
+		if delete:
 			del locals[func.__name__]
 	else:
-		ret = overloaded_function(func, check_for_duplicates)
+		ret = overloaded_function(func, check_for_duplicates, smart)
 	def call(*args, **kwargs):
-		print('hi', args, kwargs, ret)
 		return ret(*args, **kwargs)
 	call.__func__ = ret
 	return call
-# def _getfunc(func, function_name, check_for_duplicates, locals, delete_func):
-# 	if function_name in locals and isinstance(locals[function_name], overloaded_function):
-# 		if check_for_duplicates != locals[function_name].check_for_duplicates:
-# 			locals[function_name].check_for_duplicates = check_for_duplicates
-# 		ret = locals[function_name] + func
-# 		if delete_func:
+# def _getfunc(func, name, check_for_duplicates, locals, delete):
+# 	if name in locals and isinstance(locals[name], overloaded_function):
+# 		if check_for_duplicates != locals[name].check_for_duplicates:
+# 			locals[name].check_for_duplicates = check_for_duplicates
+# 		ret = locals[name] + func
+# 		if delete:
 # 			del locals[func.__name__]
 # 		return ret
 # 	return overloaded_function(func, check_for_duplicates)
 
-def overload(func = None, function_name = None, check_for_duplicates = True, _locals = None, delete_func = True):
+def overload(func = None, name = None, delete = True, smart = True, check_for_duplicates = True, _locals = None):
 	"""
 	Enables `overloading` a function. 
 	func (default=None) :: If None, the program will check for any other functions with the same name as the function
 		that this is being called on, and overload those. Specifying `func` will only overload the passed function. Note that
 		`func` has to be of type `types.FunctionType` or `overloaded_function`.
-	function_name (default=None) :: If None, then `func.__qualname__` will be used to determine what to overload.
-		Otherwise, function_name will be.
+	name (default=None) :: If None, then `func.__qualname__` will be used to determine what to overload.
+		Otherwise, name will be.
 	check_for_duplicates (default=True) :: If False, the program will call and return the first valid function it finds.
 		If True, then it will continue searching until there are no more valid functions, or it finds another match.
 		In the case of another match, a SyntaxError will be thrown.
 	_locals (default=None) :: If set to None, the locals where overload was called will be used
 		(e.g. the locals at `foo = overload()`); Otherwise, _locals will be used.
-	delete_func (default=True) :: If True, and `func.__name__` isn't equal to `function_name`, then func will be deleted
+	delete (default=True) :: If True, and `func.__name__` isn't equal to `name`, then func will be deleted
 		out of `_locals`.
 	"""
 	_locals = _locals or inspect.currentframe().f_back.f_locals
-	print(_locals.keys(), 'add' in _locals)
 	if isinstance(func, FunctionType) and hasattr(func, '__func__'):
-		print(func,'@@@@@@')
 		func = func.__func__
-	print(func,)
 	if isinstance(func, (FunctionType, overloaded_function)):
-		return _getfunc(func, function_name or func.__name__, check_for_duplicates, _locals, delete_func)
-	return lambda func: _getfunc(func, function_name or func.__name__, check_for_duplicates, _locals, delete_func)
+		return _getfunc(func, name or func.__name__, check_for_duplicates, _locals, delete, smart)
+	return lambda func: _getfunc(func, name or func.__name__, check_for_duplicates, _locals, delete, smart)
 
 __all__ = ['overload', 'overloaded_function']
 

@@ -1,24 +1,31 @@
 from overload import *
 from types import FunctionType
 
+@overload
+def printargs(func):
+	return printargs(func, '{', ', ', '}')
+@overload
+def printargs(func, start, sep, end):
+	def pr(*args, **kwargs):
+		print(start,func.__qualname__, args, kwargs, end, sep = sep)
+		return func(*args, **kwargs)
+	return pr
+@overload
+def printargs(a, b, start = '{', sep = ', ', end = '}'):
+	return lambda func: printargs(func = func, start = start, sep = sep,end = end)
 
-# @overload
-# def bar(): return (9)
+# @printargs(1, 2, '\n--','\n', '--\n')
+@printargs
+def domath(a, b, c):
+	return a * b ** c
 
-class testclass():
-	def __init__(self, val):
-		self.val = val
-	def __repr__(self):
-		return type(self).__qualname__ + '({})'.format(self.val)
-
-	@overload
-	def add(self, val):
-		self.val += val
-		return self
-	print('@')
-	@overload
-	def add(self, val1, val2):
-		self.val += val1 * val2
-		return self
-foo = testclass(9)
-print(foo.add(3,4))
+domath(1,2,3)
+# class intv2(int):
+	# @overload
+	# def __add__(self, val):
+	# 	return intv2(super().__add__(val))
+	# @overload
+	# def __add__(self, ):
+	# 	return 
+# foo = intv2(9)
+# print(foo + 1)
