@@ -1,5 +1,17 @@
 from overload import *
-from types import FunctionType
+
+class foo():
+    @overload
+    def __init__(self, a):
+        self.__init__(a, 9)
+    @overload
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+    def __str__(self):
+        return str(self.a) + ' ' + str(self.b)
+print(foo(3))
+quit()
 
 @overload
 def printargs(a, b, start = '{', sep = ', ', end = '}'):
@@ -16,12 +28,14 @@ def printargs(func, start, sep, end):
 		return func(*args, **kwargs)
 	return pr
 
-# @printargs(1, 2, '\n--','\n', '--\n')
 @printargs
 def domath(a, b, c):
 	return a * b ** c
 
-domath(1,2,3)
+def foo(a, *args):
+	print(a, args)
+foo.__call__({'a':'19', })
+# domath(1,2,3)
 # class intv2(int):
 	# @overload
 	# def __add__(self, val):
@@ -31,3 +45,38 @@ domath(1,2,3)
 	# 	return 
 # foo = intv2(9)
 # print(foo + 1)
+
+
+
+
+
+
+
+
+@overload
+def foo(a, b): foo(a, b, 9)
+
+@overload
+def foo(a, b, c): print(a, b, c)
+
+@overload
+def foo(a): foo(a,6)
+
+foo(3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

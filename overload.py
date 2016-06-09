@@ -41,11 +41,9 @@ class _func_info():
 		Section 3:
 		Check the passed kwargs, and see if any of them aren't defnied, and varkw isnt defined.
 		"""
-		print(len(args), self.args)
 		section1 = len(args) > len(self.args) + len(self.kwargs) and not self.varargs
 		section2 = any(arg not in kwargskeys for arg in self.args[len(args):])
 		section3 = kwargskeys - self.kwargskeys - frozenset(self.args[len(args):]) - self.kwargsonlykeys and not self.varkw
-		# print(section1, section2, section3, args, self.args, kwargs, self.kwargs)
 		return not(section1 or section2 or section3) # Section 3
 	def __repr__(self): return '{}({})'.format(type(self).__qualname__, self.func)
 	def __str__(self): return str(list(self))
@@ -81,7 +79,6 @@ class overloaded_function(dict):
 		for finfo in self.values():
 			if finfo._matches(args, kwargs, kwargskeys):
 				if lastmatched and not self.smart:
-					print(lastmatched, finfo, sep='\n')
 					raise SyntaxError("Two possibilities for the given args: args={}, kwargs = {}".format(args, kwargs))
 				lastmatched.append(finfo)
 				if not self.check_for_duplicates:
