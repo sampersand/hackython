@@ -2,8 +2,8 @@ from overload import *
 from types import MethodType
 from inspect import currentframe, stack
 def _overload(func):
-	def call(self, *args, **kwargs):
-		return overload(func).__call__(*([self]+list(args)), **kwargs)
+	def call(*args, **kwargs):
+		return overload(func)(*args, **kwargs)
 	return call
 class testclass():
 	def __init__(self, val):
@@ -18,9 +18,9 @@ class testclass():
 	# def add1(self, val1, val2):
 	# 	self.val += val1 * val2
 @_overload
-def bar(self, val):
-	return (self, val, 9)
-print(bar(1,2))
+def bar():
+	return (9)
+print(bar())
 foo = testclass(val = 9)
 print(foo.add(3))
 
