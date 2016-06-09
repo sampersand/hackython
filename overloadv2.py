@@ -21,6 +21,10 @@ class _func_info():
 	def __hash__(self):
 		#kwonly can be frozenset because only membership is needed
 		return hash(iter(self)) 
+	@property
+	def ismethod(self):
+		return 1
+	
 	def _matches(self, args, kwargs, kwargskeys):
 		"""
 		imagine you have this function:
@@ -44,11 +48,8 @@ class _func_info():
 		"""
 
 		print(self, end = ' ')
-		# print(len(args) > len(self.args) + len(self.kwargs) and not self.varargs)
-		# print(any(arg not in kwargskeys for arg in self.args[len(args):]))
-		print(self.args, args, self.args[len(args):])
 		return not(len(args) > len(self.args) + len(self.kwargs) and not self.varargs or # Section 1
-		   any(arg not in kwargskeys for arg in self.args[len(args):]) or # Section 2
+		   any(arg not in kwargskeys for arg in self.args[len(args) + self.ismethod:]) or # Section 2
 		   kwargskeys - self.kwargskeys - frozenset(self.args[len(args):]) - self.kwargsonlykeys and not self.varkw) # Section 3
 	def __repr__(self):
 		return '{}({})'.format(type(self).__qualname__, self.func)
@@ -72,6 +73,9 @@ class overloaded_function(dict):
 		return self
 
 	def __call__(self, *args, **kwargs):
+		def a(*args1, **kwargs1):
+			print(args1, kwargs1)
+		return a
 		lastmatched = None
 		kwargskeys = frozenset(kwargs)
 		for finfo in self.values():
@@ -88,8 +92,12 @@ class overloaded_function(dict):
 	def __str__(self): return '{' + ', '.join(':'.join((str(k), str(v))) for k, v in self.items()) + '}'
 def _getfunc(func, function_name, check_for_duplicates, locals):
 	if function_name in locals and isinstance(locals[function_name], overloaded_function):
-		if check_for_duplicates != locals[function_name].check_for_duplicates: locals[function_name].check_for_duplicates = check_for_duplicates
-		return locals[function_name] + func
+		if check_for_duplicates != locals[function_name].check_for_duplicates:
+			locals[function_name].check_for_duplicates = check_for_duplicates
+		ret = locals[function_name] + func
+		print(locals.keys(), func.__name__)
+		del locals[func.__name__]
+		return ret
 	return overloaded_function(func, check_for_duplicates)
 
 def overload(func = None, function_name = None, check_for_duplicates = True, _locals = None):
@@ -110,23 +118,24 @@ def overload(func = None, function_name = None, check_for_duplicates = True, _lo
 	_locals = _locals or inspect.currentframe().f_back.f_locals
 	# print(_locals)
 	if isinstance(func, (FunctionType, overloaded_function)):
-		return _getfunc(func, function_name or func.__qualname__, check_for_duplicates, _locals)
-	return lambda func: _getfunc(func, function_name or func.__qualname__, check_for_duplicates, _locals)
+		return _getfunc(func, function_name or func.__name__, check_for_duplicates, _locals)
+	return lambda func: _getfunc(func, function_name or func.__name__, check_for_duplicates, _locals)
 
 __all__ = ['overload', 'overloaded_function']
 
 if __name__ == '__main__':
 	class testclass():
+		def __init__(self, v):
+			self.v = v
 		@overload
-		def __init__(self, a):
-			self.a = a
-			self.b = None
-		def __inita__(self, a, b):
-			self.a = a
-			self.b = b
-		__init__ = overload(__inita__, '__init__')
+		def add(self, v):
+			self.v += v
+		def add1(self, v1, v2):
+			self.v += v1 * v2
+		add = overload(add1, 'add')
 	t = testclass(1)
-	print(t.a)
+	print(t.add1(9,2))
+	print(t.v)
 	# @overload
 	# def foo(a, b, c):
 	# 	print('foo(a,b): %s'%locals())
