@@ -43,12 +43,15 @@ class _func_info():
 		Check the passed kwargs, and see if any of them aren't defnied, and varkw isnt defined.
 		"""
 
-		
+		print(self, end = ' ')
+		# print(len(args) > len(self.args) + len(self.kwargs) and not self.varargs)
+		# print(any(arg not in kwargskeys for arg in self.args[len(args):]))
+		print(self.args, args, self.args[len(args):])
 		return not(len(args) > len(self.args) + len(self.kwargs) and not self.varargs or # Section 1
 		   any(arg not in kwargskeys for arg in self.args[len(args):]) or # Section 2
 		   kwargskeys - self.kwargskeys - frozenset(self.args[len(args):]) - self.kwargsonlykeys and not self.varkw) # Section 3
 	def __repr__(self):
-		return '_func_info({})'.format(self.func)
+		return '{}({})'.format(type(self).__qualname__, self.func)
 	def __str__(self):
 		return str(list(self))
 
@@ -69,7 +72,6 @@ class overloaded_function(dict):
 		return self
 
 	def __call__(self, *args, **kwargs):
-		print(self)
 		lastmatched = None
 		kwargskeys = frozenset(kwargs)
 		for finfo in self.values():
@@ -78,14 +80,15 @@ class overloaded_function(dict):
 					raise SyntaxError("Two possibilities for the given args: args={}, kwargs = {}".format(args, kwargs))
 				lastmatched = finfo
 				if not self.check_for_duplicates:
-					break
+					return lastmatched.func(*args, **kwargs)
 		if lastmatched == None:
 			raise SyntaxError("No function found for the arguments: args={}, kwargs={}".format(args, kwargs))
 		return lastmatched.func(*args, **kwargs)
-	def __str__(self):
-		return '{' + ', '.join(':'.join((str(k), str(v))) for k, v in self.items()) + '}'
+
+	def __str__(self): return '{' + ', '.join(':'.join((str(k), str(v))) for k, v in self.items()) + '}'
 def _getfunc(func, function_name, check_for_duplicates, locals):
 	if function_name in locals and isinstance(locals[function_name], overloaded_function):
+		if check_for_duplicates != locals[function_name].check_for_duplicates: locals[function_name].check_for_duplicates = check_for_duplicates
 		return locals[function_name] + func
 	return overloaded_function(func, check_for_duplicates)
 
@@ -105,6 +108,7 @@ def overload(func = None, function_name = None, check_for_duplicates = True, _lo
 
 	"""
 	_locals = _locals or inspect.currentframe().f_back.f_locals
+	# print(_locals)
 	if isinstance(func, (FunctionType, overloaded_function)):
 		return _getfunc(func, function_name or func.__qualname__, check_for_duplicates, _locals)
 	return lambda func: _getfunc(func, function_name or func.__qualname__, check_for_duplicates, _locals)
@@ -117,22 +121,20 @@ if __name__ == '__main__':
 		def __init__(self, a):
 			self.a = a
 			self.b = None
-		@overload
-		def __init__(self, a, b):
+		def __inita__(self, a, b):
 			self.a = a
 			self.b = b
+		__init__ = overload(__inita__, '__init__')
 	t = testclass(1)
 	print(t.a)
 	# @overload
 	# def foo(a, b, c):
 	# 	print('foo(a,b): %s'%locals())
-	# @overload
-	# def foo(a, *args):
+	# def fooa(a, *args):
 	# 	print('no')
-	# # foo(1, 2)
-	# def foo(a, *args):
-	# 	print(a, args)
-	# foo(1, *args)
+	# foo = overload(fooa, 'foo', 0)
+
+	# foo(1, 2, 3)
 
 
 
