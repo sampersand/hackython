@@ -19,8 +19,6 @@ class _func_info():
 		#kwonly can be frozenset because only membership is needed
 		return hash((self.args, self.kwargskeys, self.varargs,
 					self.varkw, self.kwargsonlykeys)) 
-	def matches(self, args, kwargs):
-		return self.matches(args, kwargs, frozenset(kwargs))
 	def _matches(self, args, kwargs, kwargskeys):
 		"""
 		imagine you have this function:
@@ -42,25 +40,11 @@ class _func_info():
 		Section 3:
 		Check the passed kwargs, and see if any of them aren't defnied, and varkw isnt defined.
 		"""
-		print(args, kwargs)
-		print(self.args, self.kwargs)
 
-		# Section 1: checking length of passed args
-		if len(args) > len(self.args) + len(self.kwargs) and not self.varargs:
-			return False
 		
-		# Section 2: positional arguments
-		positional_kwargs = self.args[len(args):]
-		for arg in positional_kwargs:
-			if arg not in kwargskeys: # aka, if the positional argument isnt at the right spot
-				return False
-
-		# Section 3: kwargs
-		if not self.varkw:
-			if kwargskeys - self.kwargskeys - frozenset(positional_kwargs) - self.kwargsonlykeys: #maybe break into multiple if statements
-				# aka, if 
-				return False
-		return True
+		return not(len(args) > len(self.args) + len(self.kwargs) and not self.varargs or # Section 1
+		   any(arg not in kwargskeys for arg in self.args[len(args):]) or # Section 2
+		   kwargskeys - self.kwargskeys - frozenset(self.args[len(args):]) - self.kwargsonlykeys and not self.varkw) # Section 3
 
 
 class _overloaded_function(dict):
@@ -90,28 +74,29 @@ class _overloaded_function(dict):
 			raise SyntaxError("No function found for the arguments: args={}, kwargs={}".format(args, kwargs))
 		return lastmatched.func(*args, **kwargs)
 
-def _getfunc(func, check_for_duplicates):
-	locals = inspect.currentframe().f_back.f_back.f_locals
+def _getfunc(func, check_for_duplicates, locals):
+	locals = locals or inspect.currentframe().f_back.f_back.f_locals
 	if func.__qualname__ in locals and isinstance(locals[func.__qualname__], _overloaded_function):
 		return locals[func.__qualname__] + func
 	return _overloaded_function(func, check_for_duplicates)
 
-def overload(func = None, check_for_duplicates = True):
+def overload(func = None, check_for_duplicates = True, _locals = None):
 	if isinstance(func, FunctionType):
-		return _getfunc(func, check_for_duplicates)
-	return lambda func: _getfunc(func, check_for_duplicates)
+		return _getfunc(func, check_for_duplicates, _locals)
+	return lambda func: _getfunc(func, check_for_duplicates, _locals)
 
-@overload
-def foo(a, b, c):
-	print('foo(a,b): %s'%locals())
-@overload
-def foo(a, *args):
-	print('no')
-foo(1, 2, c= 3,)
-# # def printme(parg1, parg2, *pargs, kwonlyarg1 = 4, kwonlyarg2 = 5, **kwargs):
-# def printme(parg1, parg2, parg3, kwarg1 = 1, kwarg2 = 2, kwarg3 = 3, *pargs, kwonlyarg1 = 4, kwonlyarg2 = 5, kwonlyarg3 = 6, **kwargs):
-# 	print('printme(alot):' + str(locals()))
+if __name__ == '__main__':
+	@overload
+	def foo(a, b, c):
+		print('foo(a,b): %s'%locals())
+	@overload
+	def foo(a, *args):
+		print('no')
+	foo(1, 2)
+	# # def printme(parg1, parg2, *pargs, kwonlyarg1 = 4, kwonlyarg2 = 5, **kwargs):
+	# def printme(parg1, parg2, parg3, kwarg1 = 1, kwarg2 = 2, kwarg3 = 3, *pargs, kwonlyarg1 = 4, kwonlyarg2 = 5, kwonlyarg3 = 6, **kwargs):
+	# 	print('printme(alot):' + str(locals()))
 
-# @overload
-# def printme(*args):
-# 	print('printme(*args):' + str(args))
+	# @overload
+	# def printme(*args):
+	# 	print('printme(*args):' + str(args))

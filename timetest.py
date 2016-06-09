@@ -1,6 +1,8 @@
 from time import clock
+from overloadv2 import *
+
 def func1():
-	{1,2,3} - set()
+	@overload
 def func2():
 	{1,2,3} 
 	
@@ -13,4 +15,4 @@ def timefunc(func, trials = 100000):
 def compare(func1, func2, trials = 100000):
 	return timefunc(func1, trials) / timefunc(func2, trials)
 # print(timefunc(lambda: {1,2,3} - set()))
-print(compare(func1, func2, int(1e6)))
+print(compare(func1, func2, int(1e5)))
