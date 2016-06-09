@@ -1,8 +1,9 @@
 from types import FunctionType
 import inspect
-"""
-I've decided that arguments that were optional in the main function are required in the helper ones.
-"""
+#####
+#I've decided that arguments that were optional in the main function are required in the helper ones.
+#####
+
 class _func_info():
 	def __init__(self, func):
 		self.func = func
@@ -15,10 +16,11 @@ class _func_info():
 		self.kwargskeys = frozenset(self.kwargs)
 		self.kwargsonlykeys = frozenset(self.kwargsonly)
 	
+	def __iter__(self):
+		return iter((self.args, self.kwargskeys, self.varargs, self.varkw, self.kwargsonlykeys))
 	def __hash__(self):
 		#kwonly can be frozenset because only membership is needed
-		return hash((self.args, self.kwargskeys, self.varargs,
-					self.varkw, self.kwargsonlykeys)) 
+		return hash(iter(self)) 
 	def _matches(self, args, kwargs, kwargskeys):
 		"""
 		imagine you have this function:
@@ -45,22 +47,29 @@ class _func_info():
 		return not(len(args) > len(self.args) + len(self.kwargs) and not self.varargs or # Section 1
 		   any(arg not in kwargskeys for arg in self.args[len(args):]) or # Section 2
 		   kwargskeys - self.kwargskeys - frozenset(self.args[len(args):]) - self.kwargsonlykeys and not self.varkw) # Section 3
+	def __repr__(self):
+		return '_func_info({})'.format(self.func)
+	def __str__(self):
+		return str(list(self))
 
-
-class _overloaded_function(dict):
+class overloaded_function(dict):
 	def __new__(self, func, check_for_duplicates):
 		return super().__new__(self, {})
+
 	def __init__(self, func, check_for_duplicates):
 		super().__init__({})
 		self + func
 		self.check_for_duplicates = check_for_duplicates
+
 	def __add__(self, func):
 		finfo = _func_info(func)
 		if finfo in self:
 			print("Warning: function '{}' already exists!".format(finfo))
 		self[finfo] = finfo
 		return self
+
 	def __call__(self, *args, **kwargs):
+		print(self)
 		lastmatched = None
 		kwargskeys = frozenset(kwargs)
 		for finfo in self.values():
@@ -73,18 +82,19 @@ class _overloaded_function(dict):
 		if lastmatched == None:
 			raise SyntaxError("No function found for the arguments: args={}, kwargs={}".format(args, kwargs))
 		return lastmatched.func(*args, **kwargs)
-
+	def __str__(self):
+		return '{' + ', '.join(':'.join((str(k), str(v))) for k, v in self.items()) + '}'
 def _getfunc(func, function_name, check_for_duplicates, locals):
-	if function_name in locals and isinstance(locals[function_name], _overloaded_function):
+	if function_name in locals and isinstance(locals[function_name], overloaded_function):
 		return locals[function_name] + func
-	return _overloaded_function(func, check_for_duplicates)
+	return overloaded_function(func, check_for_duplicates)
 
 def overload(func = None, function_name = None, check_for_duplicates = True, _locals = None):
 	"""
 	Enables `overloading` a function. 
 	func (default=None) :: If None, the program will check for any other functions with the same name as the function
 		that this is being called on, and overload those. Specifying `func` will only overload the passed function. Note that
-		`func` has to be of type `types.FunctionType` or `_overloaded_function`.
+		`func` has to be of type `types.FunctionType` or `overloaded_function`.
 	function_name (default=None) :: If None, then `func.__qualname__` will be used to determine what to overload.
 		Otherwise, function_name will be.
 	check_for_duplicates (default=True) :: If False, the program will call and return the first valid function it finds.
@@ -95,9 +105,11 @@ def overload(func = None, function_name = None, check_for_duplicates = True, _lo
 
 	"""
 	_locals = _locals or inspect.currentframe().f_back.f_locals
-	if isinstance(func, (FunctionType, _overloaded_function)):
+	if isinstance(func, (FunctionType, overloaded_function)):
 		return _getfunc(func, function_name or func.__qualname__, check_for_duplicates, _locals)
 	return lambda func: _getfunc(func, function_name or func.__qualname__, check_for_duplicates, _locals)
+
+__all__ = ['overload', 'overloaded_function']
 
 if __name__ == '__main__':
 	class testclass():
@@ -109,7 +121,7 @@ if __name__ == '__main__':
 		def __init__(self, a, b):
 			self.a = a
 			self.b = b
-	t = testclass.__init__(1)
+	t = testclass(1)
 	print(t.a)
 	# @overload
 	# def foo(a, b, c):
