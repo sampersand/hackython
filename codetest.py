@@ -2,17 +2,19 @@ from overload import *
 from types import FunctionType
 
 @overload
+def printargs(a, b, start = '{', sep = ', ', end = '}'):
+	return lambda func: printargs(func = func, start = start, sep = sep,end = end)
+
+@overload
 def printargs(func):
 	return printargs(func, '{', ', ', '}')
+
 @overload
 def printargs(func, start, sep, end):
 	def pr(*args, **kwargs):
 		print(start,func.__qualname__, args, kwargs, end, sep = sep)
 		return func(*args, **kwargs)
 	return pr
-@overload
-def printargs(a, b, start = '{', sep = ', ', end = '}'):
-	return lambda func: printargs(func = func, start = start, sep = sep,end = end)
 
 # @printargs(1, 2, '\n--','\n', '--\n')
 @printargs
