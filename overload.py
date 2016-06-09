@@ -47,7 +47,6 @@ class _func_info():
 		Check the passed kwargs, and see if any of them aren't defnied, and varkw isnt defined.
 		"""
 
-		print(self, end = ' ')
 		return not(len(args) > len(self.args) + len(self.kwargs) and not self.varargs or # Section 1
 		   any(arg not in kwargskeys for arg in self.args[len(args) + self.ismethod:]) or # Section 2
 		   kwargskeys - self.kwargskeys - frozenset(self.args[len(args):]) - self.kwargsonlykeys and not self.varkw) # Section 3
@@ -73,9 +72,6 @@ class overloaded_function(dict):
 		return self
 
 	def __call__(self, *args, **kwargs):
-		def a(*args1, **kwargs1):
-			print(args1, kwargs1)
-		return a
 		lastmatched = None
 		kwargskeys = frozenset(kwargs)
 		for finfo in self.values():
@@ -118,6 +114,7 @@ def overload(func = None, function_name = None, check_for_duplicates = True, _lo
 	"""
 	_locals = _locals or inspect.currentframe().f_back.f_locals
 	# print(_locals)
+	# print(func)
 	if isinstance(func, (FunctionType, overloaded_function)):
 		return _getfunc(func, function_name or func.__name__, check_for_duplicates, _locals, delete_func)
 	return lambda func: _getfunc(func, function_name or func.__name__, check_for_duplicates, _locals, delete_func)
