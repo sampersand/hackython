@@ -1,7 +1,16 @@
 from time import clock
+def func1():
+	{1,2,3} - set()
+def func2():
+	{1,2,3} 
+	
+def timesforfunc(func, trials = 100000):
+	for x in range(trials):
+		c = clock(); func()
+		yield clock() - c
+def timefunc(func, trials = 100000):
+	return sum(timesforfunc(func, trials))
 def compare(func1, func2, trials = 100000):
-	def timefunction(f):
-		for x in range(trials):
-			c = clock(); f()
-			yield clock() - c
-	return sum(timefunction(func1)) / sum(timefunction(func2))
+	return timefunc(func1, trials) / timefunc(func2, trials)
+# print(timefunc(lambda: {1,2,3} - set()))
+print(compare(func1, func2, int(1e6)))
