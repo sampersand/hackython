@@ -1,19 +1,26 @@
 from overload import *
-from types import MethodType as mt
-def q(s, v):
-	print(s, v)
-	s.v += v
-class tc():
-	def __init__(s, v): s.v = v
-	def __repr__(s): return type(s).__qualname__ + '({})'.format(s.v)
-	def a(s, v):
-		s.v += v
-	def a1(s, v1, v2):
-		s.v += v1 * v2
-t = tc(1)
-tc.a2 = mt(q, t)
-print(tc.a2(9))
-print(t.v)
+from types import MethodType
+def addnotmethod(self, v):
+	self.v += v
+	return self.v
+class clname():
+	def __init__(self, v):
+		self.v = v
+	def __repr__(self):
+		return type(self).__qualname__ + '({})'.format(self.v)
+	# @overload
+	def add(self, v):
+		self.v += v
+	# @overload
+	# def add1(self, v1, v2):
+	# 	self.v += v1 * v2
+cli1 = clname(1)
+cli2 = clname(100)
+print(type(clname.add), t)
+cli1.addv2 = MethodType(addnotmethod, cli1)
+print(cli1.addv2(2), 'cli1')
+print(cli2.addv2(3), 'cli2')
+print(cli1.v, cli2.v)
 
 
 
