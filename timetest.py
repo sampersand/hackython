@@ -1,5 +1,4 @@
 from time import clock
-from overloadv2 import *
 
 def func1():
 	@overload

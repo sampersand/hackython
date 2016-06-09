@@ -90,17 +90,17 @@ class overloaded_function(dict):
 		return lastmatched.func(*args, **kwargs)
 
 	def __str__(self): return '{' + ', '.join(':'.join((str(k), str(v))) for k, v in self.items()) + '}'
-def _getfunc(func, function_name, check_for_duplicates, locals):
+def _getfunc(func, function_name, check_for_duplicates, locals, delete_func):
 	if function_name in locals and isinstance(locals[function_name], overloaded_function):
 		if check_for_duplicates != locals[function_name].check_for_duplicates:
 			locals[function_name].check_for_duplicates = check_for_duplicates
 		ret = locals[function_name] + func
-		print(locals.keys(), func.__name__)
-		del locals[func.__name__]
+		if delete_func:
+			del locals[func.__name__]
 		return ret
 	return overloaded_function(func, check_for_duplicates)
 
-def overload(func = None, function_name = None, check_for_duplicates = True, _locals = None):
+def overload(func = None, function_name = None, check_for_duplicates = True, _locals = None, delete_func = True):
 	"""
 	Enables `overloading` a function. 
 	func (default=None) :: If None, the program will check for any other functions with the same name as the function
@@ -113,46 +113,13 @@ def overload(func = None, function_name = None, check_for_duplicates = True, _lo
 		In the case of another match, a SyntaxError will be thrown.
 	_locals (default=None) :: If set to None, the locals where overload was called will be used
 		(e.g. the locals at `foo = overload()`); Otherwise, _locals will be used.
-
+	delete_func (default=True) :: If True, and `func.__name__` isn't equal to `function_name`, then func will be deleted
+		out of `_locals`.
 	"""
 	_locals = _locals or inspect.currentframe().f_back.f_locals
 	# print(_locals)
 	if isinstance(func, (FunctionType, overloaded_function)):
-		return _getfunc(func, function_name or func.__name__, check_for_duplicates, _locals)
-	return lambda func: _getfunc(func, function_name or func.__name__, check_for_duplicates, _locals)
+		return _getfunc(func, function_name or func.__name__, check_for_duplicates, _locals, delete_func)
+	return lambda func: _getfunc(func, function_name or func.__name__, check_for_duplicates, _locals, delete_func)
 
 __all__ = ['overload', 'overloaded_function']
-
-if __name__ == '__main__':
-	class testclass():
-		def __init__(self, v):
-			self.v = v
-		@overload
-		def add(self, v):
-			self.v += v
-		def add1(self, v1, v2):
-			self.v += v1 * v2
-		add = overload(add1, 'add')
-	t = testclass(1)
-	print(t.add1(9,2))
-	print(t.v)
-	# @overload
-	# def foo(a, b, c):
-	# 	print('foo(a,b): %s'%locals())
-	# def fooa(a, *args):
-	# 	print('no')
-	# foo = overload(fooa, 'foo', 0)
-
-	# foo(1, 2, 3)
-
-
-
-
-
-
-
-
-
-
-
-
