@@ -41,10 +41,15 @@ class _func_info():
 		Section 3:
 		Check the passed kwargs, and see if any of them aren't defnied, and varkw isnt defined.
 		"""
-		section1 = len(args) > len(self.args) + len(self.kwargs) and not self.varargs
-		section2 = any(arg not in kwargskeys for arg in self.args[len(args):])
-		section3 = kwargskeys - self.kwargskeys - frozenset(self.args[len(args):]) - self.kwargsonlykeys and not self.varkw
-		return not(section1 or section2 or section3) # Section 3
+		varargs = len(args) > len(self.args) + len(self.kwargs) and not self.varargs
+		varargs_that_are_kwargs = any(arg not in kwargskeys for arg in self.args[len(args):])
+		kwargs = kwargskeys - self.kwargskeys - frozenset(self.args[len(args):]) - self.kwargsonlykeys and not self.varkw
+		if True: #annotations
+			print(self.fullargspec, kwargs)
+			quit()
+		else:
+			annotations = False
+		return not(varargs or varargs_that_are_kwargs or kwargs) # Section 3
 	def __repr__(self): return '{}({})'.format(type(self).__qualname__, self.func)
 	def __str__(self): return str(list(self))
 
@@ -67,10 +72,9 @@ class overloaded_function(dict):
 	def _smartcall(self, matched, args, kwargs):
 		if len(matched) == 1:
 			return matched[0].func(*args, **kwargs)
-		for f in matched:
-
-			if len(f.args) == len(args) and not kwargs:
-				return f.func(*args, **kwargs)
+		# for f in matched:
+		# 	if len(f.args) == len(args) and not kwargs:
+		# 		return f.func(*args, **kwargs)
 		raise SyntaxError("Not currently known how to smartcall args={}, kwargs = {} for functions:\n{}".format(args, kwargs, matched))
 
 	def __call__(self, *args, **kwargs):
