@@ -7,13 +7,13 @@ import inspect
 class _func_info():
 	def __init__(self, func):
 		self.func = func
-		self.fullargspec = inspect.getfullargspec(func)
-		if not self.fullargspec.defaults: self.args, self.kwargs = tuple(self.fullargspec.args), {}
-		else: self.args, self.kwargs = self.fullargspec.args[:len(self.fullargspec.defaults)],\
-			dict(zip(self.fullargspec.args[-len(self.fullargspec.defaults):], self.fullargspec.defaults))
-		self.varargs = self.fullargspec.varargs
-		self.varkw = self.fullargspec.varkw
-		self.kwargsonly = self.fullargspec.kwonlydefaults or {}
+		fullargspec = inspect.getfullargspec(func)
+		if not fullargspec.defaults: self.args, self.kwargs = tuple(fullargspec.args), {}
+		else: self.args, self.kwargs = fullargspec.args[:len(fullargspec.defaults)],\
+			dict(zip(fullargspec.args[-len(fullargspec.defaults):], fullargspec.defaults))
+		self.varargs = fullargspec.varargs
+		self.varkw = fullargspec.varkw
+		self.kwargsonly = fullargspec.kwonlydefaults or {}
 		self.kwargskeys = frozenset(self.kwargs)
 		self.kwargsonlykeys = frozenset(self.kwargsonly)
 	
@@ -45,8 +45,9 @@ class _func_info():
 		varargs_that_are_kwargs = any(arg not in kwargskeys for arg in self.args[len(args):])
 		kwargs = kwargskeys - self.kwargskeys - frozenset(self.args[len(args):]) - self.kwargsonlykeys and not self.varkw
 		if True: #annotations
-			print(self.fullargspec, kwargs)
-			quit()
+			print(kwargs)
+			annotations = False
+			# quit()
 		else:
 			annotations = False
 		return not(varargs or varargs_that_are_kwargs or kwargs) # Section 3
