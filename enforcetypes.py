@@ -12,6 +12,7 @@ def verify(func = None, shouldwarn = 'warn' in globals(), allowexprs = True, all
 		return lambda pfunc: verify(pfunc, shouldwarn, allowexprs, allowstrs)
 
 	if type(func) != types.FunctionType:
+		print(func, shouldwarn, type(func),)
 		return lambda pfunc: verify(pfunc, shouldwarn = func, allowexprs = shouldwarn, allowstrs = allowexprs)
 
 	def _alert(msg):
@@ -48,25 +49,4 @@ def verify(func = None, shouldwarn = 'warn' in globals(), allowexprs = True, all
 			_alert("Expected return value type of \"{}\" from '{}', not \"{}\" ({})".format(annot['return'], func.__name__, ret, type(ret)))
 		return ret
 	return _check_function
-
-def test(arg):
-	return 
-
-@verify(True)
-def testfunc(a: int, b: (int, bool, float), c:bool = False, d:dict = {}) -> str:
-	return str(a * b)
-
-print(testfunc(2, 3.4, c = 1j))
-
-
-
-
-
-
-
-
-
-
-
-
-
+__all__ = ['verify']

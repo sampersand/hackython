@@ -20,7 +20,7 @@ def times(func: Callable, trials: int = 100000) -> GeneratorType:
 	for x in range(trials):
 		c = clock(); func()
 		yield clock() - c
-def average_time(func: Callable, trials: int = 100000) -> float:
+def avg_speed(func: Callable, trials: int = 100000) -> float:
 	"""Finds the average time it takes for a function to run.
 
 	func -- The function that will be called repeatedly, and the resulting times will be averaged
@@ -30,7 +30,7 @@ def average_time(func: Callable, trials: int = 100000) -> float:
 	"""
 	return sum(times(func, trials)) / trials
 
-def compare(func1: Callable, func2: Callable, trials: int = 100000) -> float:
+def compare_speeds(func1: Callable, func2: Callable, trials: int = 100000) -> float:
 	"""Compares two functions together, and returns a proportion of the two's average times.
 	
 	func1 -- The first function that will be run, and whose times will be averaged.
@@ -39,6 +39,6 @@ def compare(func1: Callable, func2: Callable, trials: int = 100000) -> float:
 	
 	return -- 
 	"""
-	return average_time(func1, trials) / average_time(func2, trials)
+	return avg_speed(func1, trials) / avg_speed(func2, trials)
 
-__all__ = ['times', 'average_time', 'compare']
+__all__ = ['times', 'avg_speed', 'compare_speeds']
