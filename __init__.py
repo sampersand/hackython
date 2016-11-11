@@ -1,10 +1,5 @@
-from .overload import *
-from .switch import *
-from .functiming import *
-from .module_hacks import *
-modulemethod = ModuleMethod
-__all__ = ('overload',
-		   'switch', 'case', 'default', 'fallthrough', 'cont', 'ft', 
-           'times', 'avg_speed', 'compare_speeds',
-           'convert_module', 'modulemethod'
-           )
+from . import overload
+from . import switch
+from . import functiming
+from . import from_stack
+from . import module_hacks
