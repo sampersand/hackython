@@ -1,10 +1,15 @@
 import functiming
 
-from overload import *
+from .overload_fast import foverload
+from .overload import overload
 # help(functiming)
-@overload(check_for_duplicates = 1)
-def foo():
+@foverload(_locals = locals())
+def with_foverload():
+	return dict()
+@overload(_locals = locals())
+def with_overload():
+	return dict()
+def without_foverload():
 	return dict()
 
-# print(foo.__call__())
-print(functiming.compare(lambda: dict(), foo))
+print(functiming.compare(with_foverload, with_overload))
