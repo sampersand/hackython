@@ -5,7 +5,7 @@ import types, typing, inspect
 
 class _func_info():
 	def __init__(self: __qualname__,
-	             func: types.FunctionType) -> None:
+				 func: types.FunctionType) -> None:
 		self.func = func
 		fullargspec = inspect.getfullargspec(func)
 		if not fullargspec.defaults:
@@ -26,9 +26,9 @@ class _func_info():
 		return hash(iter(self))
 	
 	def _matches(self: __qualname__,
-	             args: tuple,
-	             kwargs: dict,
-	             kwargskeys: frozenset) -> bool:
+				 args: tuple,
+				 kwargs: dict,
+				 kwargskeys: frozenset) -> bool:
 		"""
 		imagine you have this function:
 			def funcname(p1, p2, p3, kw1=..., kw2=..., kw3=..., *agss, kwo1=..., kwo2=..., kwo3=..., **kwargs)
@@ -80,7 +80,7 @@ class overloaded_function(dict):
 		self.smart = smart
 
 	def __add__(self: __qualname__,
-	            func: types.FunctionType) -> __qualname__:
+				func: types.FunctionType) -> __qualname__:
 		finfo = _func_info(func)
 		if finfo in self:
 			print("Warning: function '{}' already exists!".format(finfo))
@@ -92,9 +92,19 @@ class overloaded_function(dict):
 				   kwargs: dict) -> typing.Any:
 		if len(matched) == 1:
 			return matched[0].func(*args, **kwargs)
-		# for f in matched:
-		# 	if len(f.args) == len(args) and not kwargs:
-		# 		return f.func(*args, **kwargs)
+		'''
+		annotations beyond here
+		'''
+		from hackython import verify
+		matched_annotations = []
+		for func in matched:
+			try:
+				verify(func = func.func, shouldwarn = False)(*args, **kwargs)
+				matched_annotations.append(func)
+			except TypeError as e:
+				pass
+		if len(matched_annotations) == 1:
+			return matched_annotations[0].func(*args, **kwargs)
 		raise SyntaxError("Not currently known how to smartcall args={}, kwargs = {} for functions:\n{}".format(args, kwargs, matched))
 
 	def __call__(self: __qualname__,
@@ -122,10 +132,10 @@ def _getfunc(func: types.FunctionType,
 			 check_for_duplicates: bool,
 			 locals: dict,
 			 delete: bool,
-             smart: bool) -> types.FunctionType:
+			 smart: bool) -> types.FunctionType:
 	if name in locals and (isinstance(locals[name], overloaded_function)
-	                                or isinstance(locals[name], types.FunctionType) and
-	                                hasattr(locals[name], '__func__')):
+									or isinstance(locals[name], types.FunctionType) and
+									hasattr(locals[name], '__func__')):
 		if hasattr(locals[name], '__func__'):
 			locals[name] = locals[name].__func__
 		if check_for_duplicates != locals[name].check_for_duplicates:
@@ -143,11 +153,11 @@ def _getfunc(func: types.FunctionType,
 	return call
 
 def overload(func: types.FunctionType = None,
-             name: str = None,
-             delete: bool = True,
-             smart: bool = True,
-             check_for_duplicates: bool = True,
-             _locals: dict = None) -> types.FunctionType:
+			 name: str = None,
+			 delete: bool = True,
+			 smart: bool = True,
+			 check_for_duplicates: bool = True,
+			 _locals: dict = None) -> types.FunctionType:
 	"""
 	Enables `overloading` a function. 
 	func (default=None) :: If None, the program will check for any other functions with the same name as the function
@@ -170,7 +180,7 @@ def overload(func: types.FunctionType = None,
 		return _getfunc(func, name or func.__name__, check_for_duplicates, _locals, delete, smart)
 	return lambda func: _getfunc(func, name or func.__name__, check_for_duplicates, _locals, delete, smart)
 
-__all__ = ['overload', 'overloaded_function']
+__all__ = ['overload']
 
 
 

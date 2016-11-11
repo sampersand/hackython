@@ -5,10 +5,10 @@ class attrdict(dict):
     	return self[attr]
 
 class case():
-    def __init__(self, *labels, value = None, fallthrough = False, code = False):
+    def __init__(self, *labels, value = None, breakout = False, code = False):
         self.labels = set(labels)
         self.value = value
-        self.fallthrough = fallthrough
+        self.breakout = breakout
         self.iscode = code
     def __eq__(self, other): return other in self.labels
     def _value(self, _globals, _locals):
@@ -22,7 +22,7 @@ class case():
     def __str__(self): return '{} : {}'.format(self.labels, self.value)
     def __repr__(self): return '{}({}{}{}{})'.format(type(self).__qualname__, repr(self.labels),
                                             self.value != None and ', value=' + repr(self.value) or '',
-                                            self.fallthrough != False and ', fallthrough=' + repr(self.fallthrough) or '',
+                                            self.breakout != False and ', breakout=' + repr(self.breakout) or '',
                                             self.iscode != False and ', code=' + repr(self.iscode) or '',)
 
 class _default_case(case):
@@ -31,7 +31,7 @@ class _default_case(case):
     def __str__(self): return 'default : {}'.format(self.value)
 
 class _switch_statement(list):
-    class _fallthrough_class():
+    class _breakout_class():
         pass
     def __new__(self, varname = None, dothrow = False): return super().__new__(self, [])
     def __init__(self, varname = None, dothrow = False):
@@ -45,10 +45,10 @@ class _switch_statement(list):
                 if isinstance(casevalue, slice):
                     self.append(casevalue.start)
                     self[-1].value = casevalue.stop
-                    if isinstance(casevalue.step, _switch_statement._fallthrough_class):
-                        self[-1].fallthrough = True
-                elif isinstance(casevalue, _switch_statement._fallthrough_class):
-                    self[-1].fallthrough = True
+                    if isinstance(casevalue.step, _switch_statement._breakout_class):
+                        self[-1].breakout = True
+                elif isinstance(casevalue, _switch_statement._breakout_class):
+                    self[-1].breakout = True
                 elif isinstance(casevalue, case):
                     self.append(casevalue)
             return self
@@ -68,8 +68,7 @@ class _switch_statement(list):
                 _locals[self.varname] = control_var
             for _case in self[self.index(control_var):]:
                 ret = _case._value(_globals, _locals)
-                if not _case.fallthrough:
-                	return ret
+                if _case.breakout: return ret
             return ret #should exist because otherwise error would have been called
 
 class switch_class():
@@ -81,9 +80,9 @@ class switch_class():
 
 switch = switch_class()
 default = _default_case()
-fallthrough = _switch_statement._fallthrough_class()
-cont, ft = fallthrough, fallthrough
-__all__ = ['switch', 'default', 'fallthrough', 'cont', 'ft', 'case']
+breakout = _switch_statement._breakout_class()
+br = breakout
+__all__ = ['switch', 'default', 'breakout', 'br', 'case']
 
 
 
